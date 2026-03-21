@@ -2,7 +2,7 @@
 
 A Neovim plugin for [Joplin](https://joplinapp.org) that uses [fzf-lua](https://github.com/ibhagwan/fzf-lua) as its picker interface.
 
-Browse, search, create, edit, and delete Joplin notes without leaving Neovim.
+Browse, search, create, edit, and delete Joplin notes and todos without leaving Neovim.
 
 ## Requirements
 
@@ -47,25 +47,54 @@ require("joplin.nvim").setup({
 
 ## Commands
 
+### Browsing
+
 | Command | Description |
 |---|---|
-| `:Joplin` | Browse all notes with fzf-lua |
+| `:Joplin` | Browse all notes and todos |
 | `:JoplinSearch [query]` | Search notes using Joplin's full-text search (searches inside note bodies) |
 | `:JoplinNotebook` | Pick a notebook, then browse its notes |
-| `:JoplinNew` | Create a new note (picks notebook, then prompts for title) |
+| `:JoplinTags` | Pick a tag, then browse its notes |
+| `:JoplinTodos` | Browse todos with completion status |
+
+### Creating
+
+| Command | Description |
+|---|---|
+| `:JoplinNewNote` | Create a new note (picks notebook, then prompts for title) |
+| `:JoplinNewTodo` | Create a new todo (picks notebook, then prompts for title) |
+
+### Managing (current buffer)
+
+| Command | Description |
+|---|---|
 | `:JoplinDelete` | Delete the note in the current buffer |
+| `:JoplinTag` | Manage tags on the current note (toggle on/off) |
+| `:JoplinToggleTodo` | Toggle todo completion (incomplete/completed) |
+| `:JoplinConvertTodo` | Convert note to todo or todo to note |
 
 ## Picker keybindings
 
-### Notes picker (`:Joplin`, `:JoplinSearch`, `:JoplinNotebook`)
+### Notes picker (`:Joplin`, `:JoplinSearch`, `:JoplinNotebook`, `:JoplinTags`)
 
 | Key | Action |
 |---|---|
 | `Enter` | Open the selected note |
 | `ctrl-n` | Create a new note (with notebook selection) |
 | `ctrl-x` | Delete the selected note |
+| `ctrl-t` | Manage tags on the selected note |
 
-### Notebook picker (`:JoplinNotebook`, `:JoplinNew`, `ctrl-n` in notes picker)
+### Todos picker (`:JoplinTodos`)
+
+| Key | Action |
+|---|---|
+| `Enter` | Open the selected todo |
+| `ctrl-d` | Toggle todo completion |
+| `ctrl-n` | Create a new todo (with notebook selection) |
+| `ctrl-x` | Delete the selected todo |
+| `ctrl-t` | Manage tags on the selected todo |
+
+### Notebook picker (`:JoplinNotebook`, `:JoplinNewNote`, `:JoplinNewTodo`)
 
 | Key | Action |
 |---|---|
@@ -73,12 +102,28 @@ require("joplin.nvim").setup({
 | `ctrl-n` | Create a new notebook |
 | `ctrl-x` | Delete the selected notebook |
 
+### Tag picker (`:JoplinTags`)
+
+| Key | Action |
+|---|---|
+| `Enter` | Browse notes with the selected tag |
+| `ctrl-n` | Create a new tag |
+| `ctrl-x` | Delete the selected tag |
+
+### Tag manager (`:JoplinTag`, `ctrl-t` in notes picker)
+
+| Key | Action |
+|---|---|
+| `Enter` | Toggle selected tag(s) on/off (supports multi-select) |
+| `ctrl-n` | Create a new tag and apply it |
+
 ## How it works
 
 - Notes are opened in Neovim buffers with `buftype=acwrite` and `filetype=markdown`, so treesitter highlighting and markdown LSP work normally.
 - Saving with `:w` syncs the buffer content back to Joplin via its REST API.
 - Running `:e` on an open note re-fetches the content from Joplin.
 - Buffer names use the `joplin://` scheme (e.g. `joplin://abc123/My-Note.md`).
+- Todos show `[x]`/`[ ]` completion status in all pickers.
 
 ## License
 
