@@ -72,6 +72,7 @@ require("joplin.nvim").setup({
 | `:JoplinTag` | Manage tags on the current note (toggle on/off) |
 | `:JoplinToggleTodo` | Toggle todo completion (incomplete/completed) |
 | `:JoplinConvertTodo` | Convert note to todo or todo to note |
+| `:JoplinMove` | Move the current note to a different notebook |
 
 ## Picker keybindings
 
@@ -83,6 +84,7 @@ require("joplin.nvim").setup({
 | `ctrl-n` | Create a new note (with notebook selection) |
 | `ctrl-x` | Delete the selected note |
 | `ctrl-t` | Manage tags on the selected note |
+| `alt-m` | Move the selected note to a different notebook |
 
 ### Todos picker (`:JoplinTodos`)
 
@@ -93,6 +95,7 @@ require("joplin.nvim").setup({
 | `ctrl-n` | Create a new todo (with notebook selection) |
 | `ctrl-x` | Delete the selected todo |
 | `ctrl-t` | Manage tags on the selected todo |
+| `alt-m` | Move the selected todo to a different notebook |
 
 ### Notebook picker (`:JoplinNotebook`, `:JoplinNewNote`, `:JoplinNewTodo`)
 

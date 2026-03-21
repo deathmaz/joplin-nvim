@@ -258,6 +258,22 @@ local function get_previewer()
   return JoplinPreviewer
 end
 
+--- Move a note to a different notebook
+---@param note_id string
+function M.move_note(note_id)
+  M.pick_notebook(function(folder_id)
+    if not folder_id then
+      return
+    end
+    local err = api.update_note(note_id, { parent_id = folder_id })
+    if err then
+      vim.notify("[joplin.nvim] Move failed: " .. err, vim.log.levels.ERROR)
+    else
+      vim.notify("[joplin.nvim] Note moved", vim.log.levels.INFO)
+    end
+  end)
+end
+
 ---@param note_id string
 function M.manage_note_tags(note_id)
   local all_tags = fetch_all_sync(function(page)
@@ -348,6 +364,13 @@ local function action_manage_tags(selected)
   end
 end
 
+local function action_move(selected)
+  local note_id = selected_id(selected)
+  if note_id then
+    M.move_note(note_id)
+  end
+end
+
 --- Open a note picker with standard actions
 ---@param source fun(cb: fun(entry?: string))
 ---@param opts { prompt: string, actions?: table }
@@ -357,6 +380,7 @@ local function note_picker(source, opts)
     ["default"] = action_open,
     ["ctrl-x"] = action_delete,
     ["ctrl-t"] = action_manage_tags,
+    ["alt-m"] = action_move,
   }, opts.actions or {})
 
   fzf_lua.fzf_exec(source, {

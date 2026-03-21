@@ -67,6 +67,12 @@ function M.convert_todo()
   require("joplin.nvim.picker").convert_todo(note_id)
 end
 
+function M.move()
+  local note_id = current_note_id()
+  if not note_id then return end
+  require("joplin.nvim.picker").move_note(note_id)
+end
+
 function M.new_note()
   require("joplin.nvim.picker").pick_notebook(function(folder_id)
     require("joplin.nvim.picker").create_in_folder(folder_id)
