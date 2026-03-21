@@ -11,6 +11,14 @@ vim.api.nvim_create_user_command("JoplinNotebook", function()
   require("joplin.nvim").notebook()
 end, { desc = "Browse notes in a notebook" })
 
+vim.api.nvim_create_user_command("JoplinTag", function()
+  require("joplin.nvim").tag()
+end, { desc = "Manage tags on the current Joplin note" })
+
+vim.api.nvim_create_user_command("JoplinTags", function()
+  require("joplin.nvim").tags()
+end, { desc = "Browse notes by tag" })
+
 vim.api.nvim_create_user_command("JoplinNew", function()
   require("joplin.nvim").new()
 end, { desc = "Create a new Joplin note" })

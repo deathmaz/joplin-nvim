@@ -245,4 +245,82 @@ function M.search(query, page, callback)
   }, nil, callback)
 end
 
+--- List all tags (paginated)
+---@param page? number
+---@param callback? fun(err: string?, data: table?)
+---@return string? err
+---@return table? data
+function M.list_tags(page, callback)
+  return M._request("GET", "/tags", {
+    fields = "id,title",
+    page = page or 1,
+    limit = config.get().page_size,
+  }, nil, callback)
+end
+
+--- List notes for a specific tag
+---@param tag_id string
+---@param page? number
+---@param callback? fun(err: string?, data: table?)
+---@return string? err
+---@return table? data
+function M.list_tag_notes(tag_id, page, callback)
+  return M._request("GET", "/tags/" .. tag_id .. "/notes", {
+    fields = NOTE_FIELDS,
+    order_by = "updated_time",
+    order_dir = "DESC",
+    page = page or 1,
+    limit = config.get().page_size,
+  }, nil, callback)
+end
+
+--- Get tags for a specific note
+---@param note_id string
+---@param callback? fun(err: string?, data: table?)
+---@return string? err
+---@return table? data
+function M.get_note_tags(note_id, callback)
+  return M._request("GET", "/notes/" .. note_id .. "/tags", {
+    fields = "id,title",
+  }, nil, callback)
+end
+
+--- Add a tag to a note
+---@param tag_id string
+---@param note_id string
+---@param callback? fun(err: string?, data: table?)
+---@return string? err
+---@return table? data
+function M.tag_note(tag_id, note_id, callback)
+  return M._request("POST", "/tags/" .. tag_id .. "/notes", nil, { id = note_id }, callback)
+end
+
+--- Remove a tag from a note
+---@param tag_id string
+---@param note_id string
+---@param callback? fun(err: string?, data: table?)
+---@return string? err
+---@return table? data
+function M.untag_note(tag_id, note_id, callback)
+  return M._request("DELETE", "/tags/" .. tag_id .. "/notes/" .. note_id, nil, nil, callback)
+end
+
+--- Create a tag
+---@param data table
+---@param callback? fun(err: string?, data: table?)
+---@return string? err
+---@return table? data
+function M.create_tag(data, callback)
+  return M._request("POST", "/tags", nil, data, callback)
+end
+
+--- Delete a tag
+---@param id string
+---@param callback? fun(err: string?, data: table?)
+---@return string? err
+---@return table? data
+function M.delete_tag(id, callback)
+  return M._request("DELETE", "/tags/" .. id, nil, nil, callback)
+end
+
 return M

@@ -14,6 +14,16 @@ local function extract_id(entry)
   return entry:match("^([^\t]+)")
 end
 
+--- Extract id from fzf selected array, with guards
+---@param selected string[]?
+---@return string?
+local function selected_id(selected)
+  if not selected or #selected == 0 then
+    return nil
+  end
+  return extract_id(selected[1])
+end
+
 ---@param item table
 ---@return string
 local function format_entry(item)
@@ -48,45 +58,70 @@ local function paginated_source(fetch_fn)
   end
 end
 
--- Shared note actions
-local function action_open(selected)
-  if not selected or #selected == 0 then
-    return
+--- Fetch all pages of a paginated API synchronously
+---@param fetch_fn fun(page: number): string?, table?
+---@return table[]
+local function fetch_all_sync(fetch_fn)
+  local all = {}
+  local page = 1
+  while true do
+    local err, result = fetch_fn(page)
+    if err or not result then
+      break
+    end
+    local items = result.items or result
+    for _, item in ipairs(items) do
+      table.insert(all, item)
+    end
+    if not result.has_more then
+      break
+    end
+    page = page + 1
   end
-  local note_id = extract_id(selected[1])
+  return all
+end
+
+--- Confirm and delete a resource via the API
+---@param prompt string
+---@param delete_fn fun(): string?
+---@param success_msg string
+---@return boolean
+local function confirm_delete(prompt, delete_fn, success_msg)
+  local confirm = vim.fn.confirm(prompt, "&Yes\n&No", 2)
+  if confirm ~= 1 then
+    return false
+  end
+  local err = delete_fn()
+  if err then
+    vim.notify("[joplin.nvim] Delete failed: " .. err, vim.log.levels.ERROR)
+    return false
+  end
+  vim.notify("[joplin.nvim] " .. success_msg, vim.log.levels.INFO)
+  return true
+end
+
+---@param note_id string
+---@return boolean
+function M.confirm_delete_note(note_id)
+  return confirm_delete("Delete this note?", function()
+    return api.delete_note(note_id)
+  end, "Note deleted")
+end
+
+local function action_open(selected)
+  local note_id = selected_id(selected)
   if note_id then
     buffer.open(note_id)
   end
 end
 
---- Confirm-and-delete a note, returns true on success
----@param note_id string
----@return boolean
-function M.confirm_delete_note(note_id)
-  local confirm = vim.fn.confirm("Delete this note?", "&Yes\n&No", 2)
-  if confirm ~= 1 then
-    return false
-  end
-  local err = api.delete_note(note_id)
-  if err then
-    vim.notify("[joplin.nvim] Delete failed: " .. err, vim.log.levels.ERROR)
-    return false
-  end
-  vim.notify("[joplin.nvim] Note deleted", vim.log.levels.INFO)
-  return true
-end
-
 local function action_delete(selected)
-  if not selected or #selected == 0 then
-    return
-  end
-  local note_id = extract_id(selected[1])
+  local note_id = selected_id(selected)
   if note_id then
     M.confirm_delete_note(note_id)
   end
 end
 
---- Create a note in a folder and open it
 ---@param folder_id? string
 function M.create_note_in_folder(folder_id)
   local title = vim.fn.input("New note title: ")
@@ -166,6 +201,96 @@ local function get_previewer()
   return JoplinPreviewer
 end
 
+---@param note_id string
+function M.manage_note_tags(note_id)
+  local all_tags = fetch_all_sync(function(page)
+    return api.list_tags(page)
+  end)
+
+  local err_note, note_tags_result = api.get_note_tags(note_id)
+  if err_note or not note_tags_result then
+    vim.notify("[joplin.nvim] Failed to load note tags: " .. (err_note or ""), vim.log.levels.ERROR)
+    return
+  end
+  local note_tags = note_tags_result.items or note_tags_result
+
+  local current = {}
+  for _, tag in ipairs(note_tags) do
+    current[tag.id] = true
+  end
+
+  table.sort(all_tags, function(a, b)
+    local a_sel = current[a.id] and 0 or 1
+    local b_sel = current[b.id] and 0 or 1
+    if a_sel ~= b_sel then
+      return a_sel < b_sel
+    end
+    return (a.title or ""):lower() < (b.title or ""):lower()
+  end)
+
+  local entries = {}
+  for _, tag in ipairs(all_tags) do
+    local prefix = current[tag.id] and "[x]" or "[ ]"
+    table.insert(entries, tag.id .. "\t" .. prefix .. " " .. tag.title)
+  end
+
+  local fzf_lua = require("fzf-lua")
+  fzf_lua.fzf_exec(entries, {
+    prompt = "Tags (enter=toggle)> ",
+    fzf_opts = vim.tbl_extend("force", FZF_OPTS, { ["--multi"] = "" }),
+    actions = {
+      ["default"] = function(selected)
+        if not selected then
+          return
+        end
+        for _, sel in ipairs(selected) do
+          local tag_id = extract_id(sel)
+          if tag_id then
+            if current[tag_id] then
+              local err = api.untag_note(tag_id, note_id)
+              if err then
+                vim.notify("[joplin.nvim] Untag failed: " .. err, vim.log.levels.ERROR)
+              end
+            else
+              local err = api.tag_note(tag_id, note_id)
+              if err then
+                vim.notify("[joplin.nvim] Tag failed: " .. err, vim.log.levels.ERROR)
+              end
+            end
+          end
+        end
+        vim.notify("[joplin.nvim] Tags updated", vim.log.levels.INFO)
+      end,
+      ["ctrl-n"] = function()
+        local title = vim.fn.input("New tag name: ")
+        if title == "" then
+          return
+        end
+        local err, tag = api.create_tag({ title = title })
+        if err then
+          vim.notify("[joplin.nvim] Create tag failed: " .. err, vim.log.levels.ERROR)
+          return
+        end
+        if tag then
+          local tag_err = api.tag_note(tag.id, note_id)
+          if tag_err then
+            vim.notify("[joplin.nvim] Tag failed: " .. tag_err, vim.log.levels.ERROR)
+          else
+            vim.notify("[joplin.nvim] Created and applied tag: " .. title, vim.log.levels.INFO)
+          end
+        end
+      end,
+    },
+  })
+end
+
+local function action_manage_tags(selected)
+  local note_id = selected_id(selected)
+  if note_id then
+    M.manage_note_tags(note_id)
+  end
+end
+
 --- Open a note picker with standard actions
 ---@param source fun(cb: fun(entry?: string))
 ---@param opts { prompt: string, actions?: table }
@@ -174,6 +299,7 @@ local function note_picker(source, opts)
   local actions = vim.tbl_extend("force", {
     ["default"] = action_open,
     ["ctrl-x"] = action_delete,
+    ["ctrl-t"] = action_manage_tags,
   }, opts.actions or {})
 
   fzf_lua.fzf_exec(source, {
@@ -195,27 +321,17 @@ function M.pick_notebook(on_select)
     fzf_opts = FZF_OPTS,
     actions = {
       ["default"] = function(selected)
-        if not selected or #selected == 0 then
-          return
+        local folder_id = selected_id(selected)
+        if folder_id then
+          on_select(folder_id)
         end
-        on_select(extract_id(selected[1]))
       end,
       ["ctrl-x"] = function(selected)
-        if not selected or #selected == 0 then
-          return
-        end
-        local folder_id = extract_id(selected[1])
-        if not folder_id then
-          return
-        end
-        local confirm = vim.fn.confirm("Delete this notebook and all its notes?", "&Yes\n&No", 2)
-        if confirm == 1 then
-          local err = api.delete_folder(folder_id)
-          if err then
-            vim.notify("[joplin.nvim] Delete notebook failed: " .. err, vim.log.levels.ERROR)
-          else
-            vim.notify("[joplin.nvim] Notebook deleted", vim.log.levels.INFO)
-          end
+        local folder_id = selected_id(selected)
+        if folder_id then
+          confirm_delete("Delete this notebook and all its notes?", function()
+            return api.delete_folder(folder_id)
+          end, "Notebook deleted")
         end
       end,
       ["ctrl-n"] = function()
@@ -283,6 +399,50 @@ function M.notebook()
       },
     })
   end)
+end
+
+function M.tags()
+  local fzf_lua = require("fzf-lua")
+
+  fzf_lua.fzf_exec(paginated_source(function(page, cb)
+    api.list_tags(page, cb)
+  end), {
+    prompt = "Tag> ",
+    fzf_opts = FZF_OPTS,
+    actions = {
+      ["default"] = function(selected)
+        local tag_id = selected_id(selected)
+        if not tag_id then
+          return
+        end
+        note_picker(paginated_source(function(page, cb)
+          api.list_tag_notes(tag_id, page, cb)
+        end), {
+          prompt = "Tagged Notes> ",
+        })
+      end,
+      ["ctrl-n"] = function()
+        local title = vim.fn.input("New tag name: ")
+        if title == "" then
+          return
+        end
+        local err = api.create_tag({ title = title })
+        if err then
+          vim.notify("[joplin.nvim] Create tag failed: " .. err, vim.log.levels.ERROR)
+        else
+          vim.notify("[joplin.nvim] Tag created: " .. title, vim.log.levels.INFO)
+        end
+      end,
+      ["ctrl-x"] = function(selected)
+        local tag_id = selected_id(selected)
+        if tag_id then
+          confirm_delete("Delete this tag?", function()
+            return api.delete_tag(tag_id)
+          end, "Tag deleted")
+        end
+      end,
+    },
+  })
 end
 
 return M

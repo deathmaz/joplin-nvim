@@ -30,6 +30,20 @@ function M.notebook()
   require("joplin.nvim.picker").notebook()
 end
 
+function M.tags()
+  require("joplin.nvim.picker").tags()
+end
+
+function M.tag()
+  local bufname = vim.api.nvim_buf_get_name(0)
+  local note_id = require("joplin.nvim.buffer").id_from_bufname(bufname)
+  if not note_id then
+    vim.notify("[joplin.nvim] Current buffer is not a Joplin note", vim.log.levels.WARN)
+    return
+  end
+  require("joplin.nvim.picker").manage_note_tags(note_id)
+end
+
 function M.new()
   require("joplin.nvim.picker").pick_notebook(function(folder_id)
     require("joplin.nvim.picker").create_note_in_folder(folder_id)
