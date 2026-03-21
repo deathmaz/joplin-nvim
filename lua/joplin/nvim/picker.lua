@@ -361,7 +361,7 @@ function M.manage_note_tags(note_id)
         end
         vim.notify("[joplin.nvim] Tags updated", vim.log.levels.INFO)
       end,
-      ["ctrl-n"] = function()
+      ["alt-n"] = function()
         local title = vim.fn.input("New tag name: ")
         if title == "" then
           return
@@ -443,7 +443,7 @@ function M.pick_notebook(on_select)
           end, "Notebook deleted")
         end
       end,
-      ["ctrl-n"] = function()
+      ["alt-n"] = function()
         local title = vim.fn.input("New notebook name: ")
         if title == "" then
           return
@@ -468,7 +468,7 @@ function M.browse()
   end), {
     prompt = "Joplin Notes> ",
     actions = {
-      ["ctrl-n"] = function()
+      ["alt-n"] = function()
         M.pick_notebook(function(folder_id)
           M.create_in_folder(folder_id)
         end)
@@ -502,7 +502,7 @@ function M.notebook()
     end), {
       prompt = "Notebook Notes> ",
       actions = {
-        ["ctrl-n"] = function()
+        ["alt-n"] = function()
           M.create_in_folder(folder_id)
         end,
       },
@@ -530,7 +530,7 @@ function M.tags()
           prompt = "Tagged Notes> ",
         })
       end,
-      ["ctrl-n"] = function()
+      ["alt-n"] = function()
         local title = vim.fn.input("New tag name: ")
         if title == "" then
           return
@@ -566,7 +566,7 @@ function M.todos()
           M.toggle_todo(note_id)
         end
       end,
-      ["ctrl-n"] = function()
+      ["alt-n"] = function()
         M.pick_notebook(function(folder_id)
           M.create_in_folder(folder_id, { is_todo = true })
         end)

@@ -82,7 +82,7 @@ require("joplin.nvim").setup({
 | Key | Action |
 |---|---|
 | `Enter` | Open the selected note |
-| `ctrl-n` | Create a new note (with notebook selection) |
+| `alt-n` | Create a new note (with notebook selection) |
 | `ctrl-x` | Delete the selected note |
 | `ctrl-t` | Manage tags on the selected note |
 | `alt-m` | Move the selected note to a different notebook |
@@ -93,7 +93,7 @@ require("joplin.nvim").setup({
 |---|---|
 | `Enter` | Open the selected todo |
 | `ctrl-d` | Toggle todo completion |
-| `ctrl-n` | Create a new todo (with notebook selection) |
+| `alt-n` | Create a new todo (with notebook selection) |
 | `ctrl-x` | Delete the selected todo |
 | `ctrl-t` | Manage tags on the selected todo |
 | `alt-m` | Move the selected todo to a different notebook |
@@ -103,7 +103,7 @@ require("joplin.nvim").setup({
 | Key | Action |
 |---|---|
 | `Enter` | Select the notebook |
-| `ctrl-n` | Create a new notebook |
+| `alt-n` | Create a new notebook |
 | `ctrl-x` | Delete the selected notebook |
 
 ### Tag picker (`:JoplinTags`)
@@ -111,7 +111,7 @@ require("joplin.nvim").setup({
 | Key | Action |
 |---|---|
 | `Enter` | Browse notes with the selected tag |
-| `ctrl-n` | Create a new tag |
+| `alt-n` | Create a new tag |
 | `ctrl-x` | Delete the selected tag |
 
 ### Tag manager (`:JoplinTag`, `ctrl-t` in notes picker)
@@ -119,7 +119,7 @@ require("joplin.nvim").setup({
 | Key | Action |
 |---|---|
 | `Enter` | Toggle selected tag(s) on/off (supports multi-select) |
-| `ctrl-n` | Create a new tag and apply it |
+| `alt-n` | Create a new tag and apply it |
 
 ## How it works
 
