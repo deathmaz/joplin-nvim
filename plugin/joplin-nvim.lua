@@ -19,9 +19,25 @@ vim.api.nvim_create_user_command("JoplinTags", function()
   require("joplin.nvim").tags()
 end, { desc = "Browse notes by tag" })
 
-vim.api.nvim_create_user_command("JoplinNew", function()
-  require("joplin.nvim").new()
+vim.api.nvim_create_user_command("JoplinTodos", function()
+  require("joplin.nvim").todos()
+end, { desc = "Browse Joplin todos" })
+
+vim.api.nvim_create_user_command("JoplinConvertTodo", function()
+  require("joplin.nvim").convert_todo()
+end, { desc = "Convert note to todo or todo to note" })
+
+vim.api.nvim_create_user_command("JoplinToggleTodo", function()
+  require("joplin.nvim").toggle_todo()
+end, { desc = "Toggle todo completion on the current note" })
+
+vim.api.nvim_create_user_command("JoplinNewNote", function()
+  require("joplin.nvim").new_note()
 end, { desc = "Create a new Joplin note" })
+
+vim.api.nvim_create_user_command("JoplinNewTodo", function()
+  require("joplin.nvim").new_todo()
+end, { desc = "Create a new Joplin todo" })
 
 vim.api.nvim_create_user_command("JoplinDelete", function()
   require("joplin.nvim").delete()

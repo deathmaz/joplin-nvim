@@ -27,7 +27,12 @@ end
 ---@param item table
 ---@return string
 local function format_entry(item)
-  return item.id .. "\t" .. (item.title or "(untitled)")
+  local title = item.title or "(untitled)"
+  if item.is_todo == 1 then
+    local status = (item.todo_completed and item.todo_completed ~= 0) and "[x]" or "[ ]"
+    return item.id .. "\t" .. status .. " " .. title
+  end
+  return item.id .. "\t" .. title
 end
 
 --- Build a paginated async fzf content source
@@ -122,13 +127,20 @@ local function action_delete(selected)
   end
 end
 
+--- Create a note or todo in a folder and open it
 ---@param folder_id? string
-function M.create_note_in_folder(folder_id)
-  local title = vim.fn.input("New note title: ")
+---@param opts? { is_todo?: boolean }
+function M.create_in_folder(folder_id, opts)
+  opts = opts or {}
+  local kind = opts.is_todo and "todo" or "note"
+  local title = vim.fn.input("New " .. kind .. " title: ")
   if title == "" then
     return
   end
   local data = { title = title, body = "" }
+  if opts.is_todo then
+    data.is_todo = 1
+  end
   if folder_id then
     data.parent_id = folder_id
   end
@@ -140,6 +152,51 @@ function M.create_note_in_folder(folder_id)
   if note then
     buffer.open(note.id)
   end
+end
+
+--- Toggle todo completion status
+---@param note_id string
+---@return boolean success
+function M.toggle_todo(note_id)
+  local err, note = api.get_note(note_id)
+  if err or not note then
+    vim.notify("[joplin.nvim] Failed to load note: " .. (err or ""), vim.log.levels.ERROR)
+    return false
+  end
+  if note.is_todo ~= 1 then
+    vim.notify("[joplin.nvim] This note is not a todo", vim.log.levels.WARN)
+    return false
+  end
+  local new_completed = (note.todo_completed and note.todo_completed ~= 0) and 0
+    or (os.time() * 1000)
+  local update_err = api.update_note(note_id, { todo_completed = new_completed })
+  if update_err then
+    vim.notify("[joplin.nvim] Toggle failed: " .. update_err, vim.log.levels.ERROR)
+    return false
+  end
+  local status = new_completed ~= 0 and "completed" or "incomplete"
+  vim.notify("[joplin.nvim] Todo marked " .. status, vim.log.levels.INFO)
+  return true
+end
+
+--- Convert a note to a todo or a todo to a note
+---@param note_id string
+---@return boolean success
+function M.convert_todo(note_id)
+  local err, note = api.get_note(note_id)
+  if err or not note then
+    vim.notify("[joplin.nvim] Failed to load note: " .. (err or ""), vim.log.levels.ERROR)
+    return false
+  end
+  local new_is_todo = note.is_todo == 1 and 0 or 1
+  local update_err = api.update_note(note_id, { is_todo = new_is_todo, todo_completed = 0 })
+  if update_err then
+    vim.notify("[joplin.nvim] Convert failed: " .. update_err, vim.log.levels.ERROR)
+    return false
+  end
+  local kind = new_is_todo == 1 and "todo" or "note"
+  vim.notify("[joplin.nvim] Converted to " .. kind, vim.log.levels.INFO)
+  return true
 end
 
 -- Lazily created previewer class (created once, reused across picker sessions)
@@ -361,7 +418,7 @@ function M.browse()
     actions = {
       ["ctrl-n"] = function()
         M.pick_notebook(function(folder_id)
-          M.create_note_in_folder(folder_id)
+          M.create_in_folder(folder_id)
         end)
       end,
     },
@@ -394,7 +451,7 @@ function M.notebook()
       prompt = "Notebook Notes> ",
       actions = {
         ["ctrl-n"] = function()
-          M.create_note_in_folder(folder_id)
+          M.create_in_folder(folder_id)
         end,
       },
     })
@@ -440,6 +497,27 @@ function M.tags()
             return api.delete_tag(tag_id)
           end, "Tag deleted")
         end
+      end,
+    },
+  })
+end
+
+function M.todos()
+  note_picker(paginated_source(function(page, cb)
+    api.search("type:todo", page, cb)
+  end), {
+    prompt = "Todos> ",
+    actions = {
+      ["ctrl-d"] = function(selected)
+        local note_id = selected_id(selected)
+        if note_id then
+          M.toggle_todo(note_id)
+        end
+      end,
+      ["ctrl-n"] = function()
+        M.pick_notebook(function(folder_id)
+          M.create_in_folder(folder_id, { is_todo = true })
+        end)
       end,
     },
   })
