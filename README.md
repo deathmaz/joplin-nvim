@@ -128,6 +128,7 @@ require("joplin.nvim").setup({
 - Running `:e` on an open note re-fetches the content from Joplin.
 - Buffer names use the `joplin://` scheme (e.g. `joplin://abc123/My-Note.md`).
 - Todos show `[x]`/`[ ]` completion status in all pickers.
+- Picker entries show the notebook name (e.g. `My Notebook > Note Title`).
 - A **winbar** shows the notebook name and note type (e.g. `My Notebook  >  Note Title` or `My Notebook  >  ⬜ Todo Title`). Disable with `winbar = false` in setup.
 
 ### Buffer variables for statusline integration

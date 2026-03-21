@@ -6,6 +6,7 @@ local M = {}
 local FZF_OPTS = {
   ["--delimiter"] = "\t",
   ["--with-nth"] = "2..",
+  ["--ansi"] = "",
 }
 
 ---@param entry string
@@ -22,45 +23,6 @@ local function selected_id(selected)
     return nil
   end
   return extract_id(selected[1])
-end
-
----@param item table
----@return string
-local function format_entry(item)
-  local title = item.title or "(untitled)"
-  if item.is_todo == 1 then
-    local status = (item.todo_completed and item.todo_completed ~= 0) and "[x]" or "[ ]"
-    return item.id .. "\t" .. status .. " " .. title
-  end
-  return item.id .. "\t" .. title
-end
-
---- Build a paginated async fzf content source
----@param fetch_fn fun(page: number, cb: fun(err: string?, data: table?))
----@return fun(cb: fun(entry?: string))
-local function paginated_source(fetch_fn)
-  return function(cb)
-    local page = 1
-    local function fetch_page()
-      fetch_fn(page, function(err, result)
-        if err or not result then
-          cb()
-          return
-        end
-        local items = result.items or result
-        for _, item in ipairs(items) do
-          cb(format_entry(item))
-        end
-        if result.has_more then
-          page = page + 1
-          fetch_page()
-        else
-          cb()
-        end
-      end)
-    end
-    fetch_page()
-  end
 end
 
 --- Fetch all pages of a paginated API synchronously
@@ -84,6 +46,71 @@ local function fetch_all_sync(fetch_fn)
     page = page + 1
   end
   return all
+end
+
+-- Notebook lookup: parent_id -> title (refreshed per picker session)
+local notebook_map = {}
+
+local function refresh_notebook_map()
+  notebook_map = {}
+  local folders = fetch_all_sync(function(page)
+    return api.list_folders(page)
+  end)
+  for _, folder in ipairs(folders) do
+    notebook_map[folder.id] = folder.title or "(untitled)"
+  end
+end
+
+local fzf_utils = require("fzf-lua.utils")
+
+---@param item table
+---@return string
+local function format_folder_entry(item)
+  return item.id .. "\t" .. (item.title or "(untitled)")
+end
+
+local function format_entry(item)
+  local title = item.title or "(untitled)"
+  local notebook = notebook_map[item.parent_id] or ""
+  local prefix = ""
+  if item.is_todo == 1 then
+    local icon = (item.todo_completed and item.todo_completed ~= 0) and "✅ " or "⬜ "
+    prefix = icon
+  end
+  if notebook ~= "" then
+    return item.id .. "\t" .. prefix .. fzf_utils.ansi_codes.green(notebook) .. " > " .. fzf_utils.ansi_codes.yellow(title)
+  end
+  return item.id .. "\t" .. prefix .. fzf_utils.ansi_codes.yellow(title)
+end
+
+--- Build a paginated async fzf content source
+---@param fetch_fn fun(page: number, cb: fun(err: string?, data: table?))
+---@param formatter? fun(item: table): string
+---@return fun(cb: fun(entry?: string))
+local function paginated_source(fetch_fn, formatter)
+  formatter = formatter or format_entry
+  return function(cb)
+    local page = 1
+    local function fetch_page()
+      fetch_fn(page, function(err, result)
+        if err or not result then
+          cb()
+          return
+        end
+        local items = result.items or result
+        for _, item in ipairs(items) do
+          cb(formatter(item))
+        end
+        if result.has_more then
+          page = page + 1
+          fetch_page()
+        else
+          cb()
+        end
+      end)
+    end
+    fetch_page()
+  end
 end
 
 --- Confirm and delete a resource via the API
@@ -375,6 +402,7 @@ end
 ---@param source fun(cb: fun(entry?: string))
 ---@param opts { prompt: string, actions?: table }
 local function note_picker(source, opts)
+  refresh_notebook_map()
   local fzf_lua = require("fzf-lua")
   local actions = vim.tbl_extend("force", {
     ["default"] = action_open,
@@ -397,7 +425,7 @@ function M.pick_notebook(on_select)
 
   fzf_lua.fzf_exec(paginated_source(function(page, cb)
     api.list_folders(page, cb)
-  end), {
+  end, format_folder_entry), {
     prompt = "Notebook> ",
     fzf_opts = FZF_OPTS,
     actions = {
@@ -487,7 +515,7 @@ function M.tags()
 
   fzf_lua.fzf_exec(paginated_source(function(page, cb)
     api.list_tags(page, cb)
-  end), {
+  end, format_folder_entry), {
     prompt = "Tag> ",
     fzf_opts = FZF_OPTS,
     actions = {
