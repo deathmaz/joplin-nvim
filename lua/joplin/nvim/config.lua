@@ -5,6 +5,7 @@ local defaults = {
   port = 41184,
   base_url = nil,
   page_size = 100,
+  winbar = true,
 }
 
 local state = {}

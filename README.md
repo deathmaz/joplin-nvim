@@ -35,6 +35,7 @@ require("joplin.nvim").setup({
   token = nil,      -- API token (defaults to $JOPLIN_TOKEN env var)
   port = 41184,     -- Joplin Web Clipper port
   page_size = 100,  -- notes per API request (max 100)
+  winbar = true,    -- show notebook/type info in winbar (set false to disable)
 })
 ```
 
@@ -127,6 +128,30 @@ require("joplin.nvim").setup({
 - Running `:e` on an open note re-fetches the content from Joplin.
 - Buffer names use the `joplin://` scheme (e.g. `joplin://abc123/My-Note.md`).
 - Todos show `[x]`/`[ ]` completion status in all pickers.
+- A **winbar** shows the notebook name and note type (e.g. `My Notebook  >  Note Title` or `My Notebook  >  ⬜ Todo Title`). Disable with `winbar = false` in setup.
+
+### Buffer variables for statusline integration
+
+When a Joplin note is open, these buffer-local variables are available:
+
+| Variable | Type | Description |
+|---|---|---|
+| `vim.b.joplin_note_id` | string | The Joplin note ID |
+| `vim.b.joplin_title` | string | Note title |
+| `vim.b.joplin_notebook` | string | Notebook name |
+| `vim.b.joplin_type` | string | `"note"` or `"todo"` |
+| `vim.b.joplin_todo_completed` | boolean | Whether the todo is completed |
+
+Example lualine component:
+
+```lua
+{
+  function()
+    return vim.b.joplin_notebook or ""
+  end,
+  cond = function() return vim.b.joplin_note_id ~= nil end,
+}
+```
 
 ## License
 

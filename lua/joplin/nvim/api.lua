@@ -153,6 +153,17 @@ function M.get_note(id, callback)
   }, nil, callback)
 end
 
+--- Get a single note metadata (without body)
+---@param id string
+---@param callback? fun(err: string?, data: table?)
+---@return string? err
+---@return table? data
+function M.get_note_metadata(id, callback)
+  return M._request("GET", "/notes/" .. id, {
+    fields = NOTE_FIELDS,
+  }, nil, callback)
+end
+
 --- Update a note
 ---@param id string
 ---@param data table
@@ -191,6 +202,17 @@ function M.list_folders(page, callback)
     fields = "id,title,parent_id",
     page = page or 1,
     limit = config.get().page_size,
+  }, nil, callback)
+end
+
+--- Get a single folder/notebook
+---@param id string
+---@param callback? fun(err: string?, data: table?)
+---@return string? err
+---@return table? data
+function M.get_folder(id, callback)
+  return M._request("GET", "/folders/" .. id, {
+    fields = "id,title,parent_id",
   }, nil, callback)
 end
 
