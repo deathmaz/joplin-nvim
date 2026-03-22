@@ -17,7 +17,7 @@ Browse, search, create, edit, and delete Joplin notes and todos without leaving 
 
 ```lua
 {
-  "your-user/joplin.nvim",
+  "deathmaz/joplin-nvim",
   dependencies = { "ibhagwan/fzf-lua" },
   config = function()
     require("joplin.nvim").setup({
