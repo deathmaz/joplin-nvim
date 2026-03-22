@@ -43,6 +43,10 @@ vim.api.nvim_create_user_command("JoplinMove", function()
   require("joplin.nvim").move()
 end, { desc = "Move the current note to a different notebook" })
 
+vim.api.nvim_create_user_command("JoplinPasteImage", function()
+  require("joplin.nvim").paste_image()
+end, { desc = "Paste clipboard image as Joplin attachment" })
+
 vim.api.nvim_create_user_command("JoplinDelete", function()
   require("joplin.nvim").delete()
 end, { desc = "Delete the current Joplin note" })

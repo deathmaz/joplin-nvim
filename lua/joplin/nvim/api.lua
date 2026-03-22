@@ -345,4 +345,34 @@ function M.delete_tag(id, callback)
   return M._request("DELETE", "/tags/" .. id, nil, nil, callback)
 end
 
+--- Upload a file as a Joplin resource (multipart/form-data)
+---@param file_path string
+---@param title? string
+---@param callback? fun(err: string?, data: table?)
+---@return string? err
+---@return table? data
+function M.upload_resource(file_path, title, callback)
+  local url = build_url("/resources")
+  local args = { "curl", "-s", "-m", "30" }
+  table.insert(args, "-F")
+  table.insert(args, "data=@" .. file_path)
+  if title then
+    table.insert(args, "-F")
+    table.insert(args, "props=" .. vim.json.encode({ title = title }))
+  end
+  table.insert(args, url)
+
+  if callback then
+    vim.system(args, { text = true }, function(obj)
+      vim.schedule(function()
+        local err, data = parse_response(obj)
+        callback(err, data)
+      end)
+    end)
+  else
+    local obj = vim.system(args, { text = true }):wait()
+    return parse_response(obj)
+  end
+end
+
 return M

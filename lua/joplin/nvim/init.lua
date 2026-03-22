@@ -85,6 +85,71 @@ function M.new_todo()
   end)
 end
 
+--- Detect the clipboard image command for the current platform
+---@return string[]?
+local function clipboard_image_cmd()
+  if vim.fn.has("mac") == 1 then
+    return { "pngpaste", "-" }
+  end
+  if vim.env.WAYLAND_DISPLAY then
+    return { "wl-paste", "--type", "image/png" }
+  end
+  return { "xclip", "-selection", "clipboard", "-t", "image/png", "-o" }
+end
+
+function M.paste_image()
+  if not current_note_id() then return end
+
+  local cmd = clipboard_image_cmd()
+  local tmpfile = vim.fn.tempname() .. ".png"
+
+  local result = vim.system(cmd, { text = false }):wait()
+  if result.code ~= 0 or not result.stdout or #result.stdout == 0 then
+    vim.notify("[joplin.nvim] No image in clipboard", vim.log.levels.WARN)
+    return
+  end
+
+  local f = io.open(tmpfile, "wb")
+  if not f then
+    vim.notify("[joplin.nvim] Failed to write temp file", vim.log.levels.ERROR)
+    return
+  end
+  local ok, write_err = pcall(function()
+    f:write(result.stdout)
+    f:close()
+  end)
+  if not ok then
+    f:close()
+    os.remove(tmpfile)
+    vim.notify("[joplin.nvim] Failed to write temp file: " .. tostring(write_err), vim.log.levels.ERROR)
+    return
+  end
+
+  local title = vim.fn.input("Image title (optional): ")
+  if title == "" then
+    title = "pasted-image-" .. os.date("%Y%m%d-%H%M%S")
+  end
+
+  local api = require("joplin.nvim.api")
+  local err, resource = api.upload_resource(tmpfile, title)
+  os.remove(tmpfile)
+
+  if err then
+    vim.notify("[joplin.nvim] Upload failed: " .. err, vim.log.levels.ERROR)
+    return
+  end
+  if not resource or not resource.id then
+    vim.notify("[joplin.nvim] Upload failed: no resource ID returned", vim.log.levels.ERROR)
+    return
+  end
+
+  local safe_title = title:gsub("[%]%)]", "")
+  local line = string.format("![%s](:/%s)", safe_title, resource.id)
+  local row = vim.api.nvim_win_get_cursor(0)[1]
+  vim.api.nvim_buf_set_lines(0, row, row, false, { line })
+  vim.notify("[joplin.nvim] Image attached", vim.log.levels.INFO)
+end
+
 function M.delete()
   local note_id = current_note_id()
   if not note_id then return end

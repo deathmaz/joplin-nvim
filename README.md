@@ -74,6 +74,7 @@ require("joplin.nvim").setup({
 | `:JoplinToggleTodo` | Toggle todo completion (incomplete/completed) |
 | `:JoplinConvertTodo` | Convert note to todo or todo to note |
 | `:JoplinMove` | Move the current note to a different notebook |
+| `:JoplinPasteImage` | Paste clipboard image as Joplin attachment |
 
 ## Picker keybindings
 
