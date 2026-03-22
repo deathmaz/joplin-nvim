@@ -13,6 +13,13 @@ local function current_note_id()
   return note_id
 end
 
+--- Strip characters that break markdown link syntax
+---@param text string
+---@return string
+local function sanitize_link_text(text)
+  return text:gsub("[%]%)]", "")
+end
+
 ---@param opts? table
 function M.setup(opts)
   config.setup(opts)
@@ -143,11 +150,44 @@ function M.paste_image()
     return
   end
 
-  local safe_title = title:gsub("[%]%)]", "")
+  local safe_title = sanitize_link_text(title)
   local line = string.format("![%s](:/%s)", safe_title, resource.id)
   local row = vim.api.nvim_win_get_cursor(0)[1]
   vim.api.nvim_buf_set_lines(0, row, row, false, { line })
   vim.notify("[joplin.nvim] Image attached", vim.log.levels.INFO)
+end
+
+function M.link()
+  if not current_note_id() then return end
+
+  local picker = require("joplin.nvim.picker")
+  picker.pick_note_for_link(function(note_id, note_title)
+    local safe_title = sanitize_link_text(note_title)
+    local link = string.format("[%s](:/%s)", safe_title, note_id)
+    local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+    local cur_line = vim.api.nvim_buf_get_lines(0, row - 1, row, false)[1] or ""
+    local new_line = cur_line:sub(1, col) .. link .. cur_line:sub(col + 1)
+    vim.api.nvim_buf_set_lines(0, row - 1, row, false, { new_line })
+    vim.api.nvim_win_set_cursor(0, { row, col + #link })
+  end)
+end
+
+function M.follow_link()
+  local line = vim.api.nvim_get_current_line()
+  local col = vim.api.nvim_win_get_cursor(0)[2] + 1
+
+  local start = 1
+  while true do
+    local s, e, note_id = line:find("%[.-%]%(:/([%x]+)%)", start)
+    if not s then break end
+    if col >= s and col <= e then
+      require("joplin.nvim.buffer").open(note_id)
+      return
+    end
+    start = e + 1
+  end
+
+  vim.notify("[joplin.nvim] No Joplin link under cursor", vim.log.levels.WARN)
 end
 
 function M.delete()

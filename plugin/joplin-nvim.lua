@@ -43,6 +43,14 @@ vim.api.nvim_create_user_command("JoplinMove", function()
   require("joplin.nvim").move()
 end, { desc = "Move the current note to a different notebook" })
 
+vim.api.nvim_create_user_command("JoplinLink", function()
+  require("joplin.nvim").link()
+end, { desc = "Insert a link to another Joplin note" })
+
+vim.api.nvim_create_user_command("JoplinFollowLink", function()
+  require("joplin.nvim").follow_link()
+end, { desc = "Follow the Joplin link under cursor" })
+
 vim.api.nvim_create_user_command("JoplinPasteImage", function()
   require("joplin.nvim").paste_image()
 end, { desc = "Paste clipboard image as Joplin attachment" })

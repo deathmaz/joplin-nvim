@@ -29,6 +29,11 @@ local function track(bufnr, note_id)
       buf_notes[bufnr] = nil
     end,
   })
+  -- gd: follow Joplin note link under cursor
+  vim.keymap.set("n", "gd", function()
+    require("joplin.nvim").follow_link()
+  end, { buffer = bufnr, desc = "Follow Joplin link" })
+
   -- Winbar autocmd: created once per buffer, reads value from buffer variable
   vim.api.nvim_create_autocmd("BufWinEnter", {
     buffer = bufnr,

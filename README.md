@@ -74,6 +74,8 @@ require("joplin.nvim").setup({
 | `:JoplinToggleTodo` | Toggle todo completion (incomplete/completed) |
 | `:JoplinConvertTodo` | Convert note to todo or todo to note |
 | `:JoplinMove` | Move the current note to a different notebook |
+| `:JoplinLink` | Insert a link to another Joplin note at cursor |
+| `:JoplinFollowLink` | Follow the Joplin link under cursor |
 | `:JoplinPasteImage` | Paste clipboard image as Joplin attachment |
 
 ## Picker keybindings
@@ -130,6 +132,7 @@ require("joplin.nvim").setup({
 - Buffer names use the `joplin://` scheme (e.g. `joplin://abc123/My-Note.md`).
 - Todos show `[x]`/`[ ]` completion status in all pickers.
 - Picker entries show the notebook name (e.g. `My Notebook > Note Title`).
+- **Note linking**: `:JoplinLink` inserts a `[title](:/id)` reference to another note. Press `gd` on a Joplin link to open the linked note.
 - A **winbar** shows the notebook name and note type (e.g. `My Notebook  >  Note Title` or `My Notebook  >  ⬜ Todo Title`). Disable with `winbar = false` in setup.
 
 ### Buffer variables for statusline integration

@@ -462,6 +462,30 @@ function M.pick_notebook(on_select)
   })
 end
 
+--- Pick a note and return its id and title via callback
+---@param on_select fun(note_id: string, title: string)
+function M.pick_note_for_link(on_select)
+  refresh_notebook_map()
+  local fzf_lua = require("fzf-lua")
+
+  fzf_lua.fzf_exec(paginated_source(function(page, cb)
+    api.list_notes(page, cb)
+  end), {
+    prompt = "Link to> ",
+    previewer = get_previewer(),
+    fzf_opts = FZF_OPTS,
+    actions = {
+      ["default"] = function(selected)
+        local note_id = selected_id(selected)
+        if not note_id then return end
+        local err, note = api.get_note_metadata(note_id)
+        if err or not note then return end
+        on_select(note_id, note.title or "untitled")
+      end,
+    },
+  })
+end
+
 function M.browse()
   note_picker(paginated_source(function(page, cb)
     api.list_notes(page, cb)
