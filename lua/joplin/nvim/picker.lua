@@ -85,32 +85,65 @@ end
 
 --- Build a paginated async fzf content source
 ---@param fetch_fn fun(page: number, cb: fun(err: string?, data: table?))
----@param formatter? fun(item: table): string
+---@param opts? { formatter?: fun(item: table): string, sort?: fun(a: table, b: table): boolean }
 ---@return fun(cb: fun(entry?: string))
-local function paginated_source(fetch_fn, formatter)
-  formatter = formatter or format_entry
+local function paginated_source(fetch_fn, opts)
+  opts = opts or {}
+  local formatter = opts.formatter or format_entry
+  local sort_fn = opts.sort
   return function(cb)
     local page = 1
+    local all_items = sort_fn and {} or nil
+
+    local function flush()
+      if all_items then
+        table.sort(all_items, sort_fn)
+        for _, item in ipairs(all_items) do
+          cb(formatter(item))
+        end
+      end
+      cb()
+    end
+
     local function fetch_page()
       fetch_fn(page, function(err, result)
         if err or not result then
-          cb()
+          flush()
           return
         end
         local items = result.items or result
-        for _, item in ipairs(items) do
-          cb(formatter(item))
+        if all_items then
+          for _, item in ipairs(items) do
+            table.insert(all_items, item)
+          end
+        else
+          for _, item in ipairs(items) do
+            cb(formatter(item))
+          end
         end
         if result.has_more then
           page = page + 1
           fetch_page()
         else
-          cb()
+          flush()
         end
       end)
     end
     fetch_page()
   end
+end
+
+--- Default note sort: completed todos last, then by updated_time descending
+---@param a table
+---@param b table
+---@return boolean
+local function note_sort(a, b)
+  local a_done = (a.is_todo == 1 and (a.todo_completed or 0) ~= 0) and 1 or 0
+  local b_done = (b.is_todo == 1 and (b.todo_completed or 0) ~= 0) and 1 or 0
+  if a_done ~= b_done then
+    return a_done < b_done
+  end
+  return (a.updated_time or 0) > (b.updated_time or 0)
 end
 
 --- Confirm and delete a resource via the API
@@ -425,7 +458,7 @@ function M.pick_notebook(on_select)
 
   fzf_lua.fzf_exec(paginated_source(function(page, cb)
     api.list_folders(page, cb)
-  end, format_folder_entry), {
+  end, { formatter = format_folder_entry }), {
     prompt = "Notebook> ",
     fzf_opts = FZF_OPTS,
     actions = {
@@ -470,7 +503,7 @@ function M.pick_note_for_link(on_select)
 
   fzf_lua.fzf_exec(paginated_source(function(page, cb)
     api.list_notes(page, cb)
-  end), {
+  end, { sort = note_sort }), {
     prompt = "Link to> ",
     previewer = get_previewer(),
     fzf_opts = FZF_OPTS,
@@ -489,7 +522,7 @@ end
 function M.browse()
   note_picker(paginated_source(function(page, cb)
     api.list_notes(page, cb)
-  end), {
+  end, { sort = note_sort }), {
     prompt = "Joplin Notes> ",
     actions = {
       ["alt-n"] = function()
@@ -511,7 +544,7 @@ function M.search(opts)
 
   note_picker(paginated_source(function(page, cb)
     api.search(query, page, cb)
-  end), {
+  end, { sort = note_sort }), {
     prompt = "Joplin Search [" .. query .. "]> ",
   })
 end
@@ -523,7 +556,7 @@ function M.notebook()
     end
     note_picker(paginated_source(function(page, cb)
       api.list_folder_notes(folder_id, page, cb)
-    end), {
+    end, { sort = note_sort }), {
       prompt = "Notebook Notes> ",
       actions = {
         ["alt-n"] = function()
@@ -539,7 +572,7 @@ function M.tags()
 
   fzf_lua.fzf_exec(paginated_source(function(page, cb)
     api.list_tags(page, cb)
-  end, format_folder_entry), {
+  end, { formatter = format_folder_entry }), {
     prompt = "Tag> ",
     fzf_opts = FZF_OPTS,
     actions = {
@@ -550,7 +583,7 @@ function M.tags()
         end
         note_picker(paginated_source(function(page, cb)
           api.list_tag_notes(tag_id, page, cb)
-        end), {
+        end, { sort = note_sort }), {
           prompt = "Tagged Notes> ",
         })
       end,
@@ -581,7 +614,7 @@ end
 function M.todos()
   note_picker(paginated_source(function(page, cb)
     api.search("type:todo", page, cb)
-  end), {
+  end, { sort = note_sort }), {
     prompt = "Todos> ",
     actions = {
       ["ctrl-d"] = function(selected)
