@@ -259,6 +259,30 @@ function M.convert_todo(note_id)
   return true
 end
 
+-- Current search query for preview highlighting (set per picker session)
+local search_highlight = nil
+local HL_NS = vim.api.nvim_create_namespace("joplin_search")
+
+---@param bufnr number
+local function apply_search_highlight(bufnr)
+  if not search_highlight or search_highlight == "" then
+    return
+  end
+  vim.api.nvim_buf_clear_namespace(bufnr, HL_NS, 0, -1)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local query_lower = search_highlight:lower()
+  for i, line in ipairs(lines) do
+    local line_lower = line:lower()
+    local start = 1
+    while true do
+      local s, e = line_lower:find(query_lower, start, true)
+      if not s then break end
+      vim.api.nvim_buf_add_highlight(bufnr, HL_NS, "Search", i - 1, s - 1, e)
+      start = e + 1
+    end
+  end
+end
+
 -- Lazily created previewer class (created once, reused across picker sessions)
 local JoplinPreviewer
 
@@ -286,8 +310,9 @@ local function get_previewer()
     if self._cache[note_id] then
       vim.api.nvim_buf_set_lines(tmpbuf, 0, -1, false, self._cache[note_id])
       vim.bo[tmpbuf].filetype = "markdown"
+      apply_search_highlight(tmpbuf)
       self:set_preview_buf(tmpbuf)
-      self.win:update_scrollbar()
+      if self.win.update_scrollbar then self.win:update_scrollbar() end
       return
     end
 
@@ -306,8 +331,9 @@ local function get_previewer()
       local buf = self:get_tmp_buffer()
       vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
       vim.bo[buf].filetype = "markdown"
+      apply_search_highlight(buf)
       self:set_preview_buf(buf)
-      self.win:update_scrollbar()
+      if self.win.update_scrollbar then self.win:update_scrollbar() end
     end)
   end
 
@@ -435,6 +461,7 @@ end
 ---@param source fun(cb: fun(entry?: string))
 ---@param opts { prompt: string, actions?: table }
 local function note_picker(source, opts)
+  search_highlight = opts.search_query
   refresh_notebook_map()
   local fzf_lua = require("fzf-lua")
   local actions = vim.tbl_extend("force", {
@@ -444,12 +471,16 @@ local function note_picker(source, opts)
     ["alt-m"] = action_move,
   }, opts.actions or {})
 
-  fzf_lua.fzf_exec(source, {
+  local fzf_config = {
     prompt = opts.prompt,
     previewer = get_previewer(),
     fzf_opts = FZF_OPTS,
     actions = actions,
-  })
+  }
+  if opts.winopts then
+    fzf_config.winopts = opts.winopts
+  end
+  fzf_lua.fzf_exec(source, fzf_config)
 end
 
 ---@param on_select fun(folder_id: string?)
@@ -546,6 +577,8 @@ function M.search(opts)
     api.search(query, page, cb)
   end, { sort = note_sort }), {
     prompt = "Joplin Search [" .. query .. "]> ",
+    search_query = query,
+    winopts = { preview = { hidden = "nohidden" } },
   })
 end
 
