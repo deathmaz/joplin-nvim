@@ -457,17 +457,30 @@ local function action_move(selected)
   end
 end
 
+-- Stored so alt-f can reopen the current picker with fresh data
+local reopen_picker = nil
+
 local DEFAULT_NOTE_ACTIONS = {
   ["default"] = action_open,
   ["ctrl-x"] = action_delete,
   ["ctrl-t"] = action_manage_tags,
   ["alt-m"] = action_move,
+  ["alt-f"] = function(selected)
+    local note_id = selected_id(selected)
+    if note_id then
+      M.toggle_todo(note_id)
+      vim.schedule(function()
+        if reopen_picker then reopen_picker() end
+      end)
+    end
+  end,
 }
 
 --- Open a note picker with standard actions
 ---@param source fun(cb: fun(entry?: string))
 ---@param opts { prompt: string, actions?: table }
 local function note_picker(source, opts)
+  reopen_picker = function() note_picker(source, opts) end
   search_highlight = opts.search_query
   refresh_notebook_map()
   local fzf_lua = require("fzf-lua")
@@ -570,6 +583,7 @@ end
 ---@param opts? { query?: string }
 function M.search(opts)
   opts = opts or {}
+  reopen_picker = function() M.search(opts) end
   refresh_notebook_map()
   local fzf_lua = require("fzf-lua")
 
@@ -678,12 +692,6 @@ function M.todos()
   end, { sort = note_sort }), {
     prompt = "Todos> ",
     actions = {
-      ["ctrl-d"] = function(selected)
-        local note_id = selected_id(selected)
-        if note_id then
-          M.toggle_todo(note_id)
-        end
-      end,
       ["alt-n"] = function()
         M.pick_notebook(function(folder_id)
           M.create_in_folder(folder_id, { is_todo = true })

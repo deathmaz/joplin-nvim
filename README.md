@@ -89,17 +89,18 @@ require("joplin.nvim").setup({
 | `ctrl-x` | Delete the selected note |
 | `ctrl-t` | Manage tags on the selected note |
 | `alt-m` | Move the selected note to a different notebook |
+| `alt-f` | Toggle todo completion |
 
 ### Todos picker (`:JoplinTodos`)
 
 | Key | Action |
 |---|---|
 | `Enter` | Open the selected todo |
-| `ctrl-d` | Toggle todo completion |
 | `alt-n` | Create a new todo (with notebook selection) |
 | `ctrl-x` | Delete the selected todo |
 | `ctrl-t` | Manage tags on the selected todo |
 | `alt-m` | Move the selected todo to a different notebook |
+| `alt-f` | Toggle todo completion |
 
 ### Notebook picker (`:JoplinNotebook`, `:JoplinNewNote`, `:JoplinNewTodo`)
 
