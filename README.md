@@ -53,7 +53,7 @@ require("joplin.nvim").setup({
 | Command | Description |
 |---|---|
 | `:Joplin` | Browse all notes and todos |
-| `:JoplinSearch [query]` | Search notes using Joplin's full-text search (searches inside note bodies) |
+| `:JoplinSearch [query]` | Live search notes (type to search via Joplin API, `ctrl-g` to toggle local filter mode) |
 | `:JoplinNotebook` | Pick a notebook, then browse its notes |
 | `:JoplinTags` | Pick a tag, then browse its notes |
 | `:JoplinTodos` | Browse todos with completion status |

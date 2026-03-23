@@ -457,6 +457,13 @@ local function action_move(selected)
   end
 end
 
+local DEFAULT_NOTE_ACTIONS = {
+  ["default"] = action_open,
+  ["ctrl-x"] = action_delete,
+  ["ctrl-t"] = action_manage_tags,
+  ["alt-m"] = action_move,
+}
+
 --- Open a note picker with standard actions
 ---@param source fun(cb: fun(entry?: string))
 ---@param opts { prompt: string, actions?: table }
@@ -464,12 +471,7 @@ local function note_picker(source, opts)
   search_highlight = opts.search_query
   refresh_notebook_map()
   local fzf_lua = require("fzf-lua")
-  local actions = vim.tbl_extend("force", {
-    ["default"] = action_open,
-    ["ctrl-x"] = action_delete,
-    ["ctrl-t"] = action_manage_tags,
-    ["alt-m"] = action_move,
-  }, opts.actions or {})
+  local actions = vim.tbl_extend("force", DEFAULT_NOTE_ACTIONS, opts.actions or {})
 
   local fzf_config = {
     prompt = opts.prompt,
@@ -568,17 +570,43 @@ end
 ---@param opts? { query?: string }
 function M.search(opts)
   opts = opts or {}
-  local query = opts.query or vim.fn.input("Search Joplin: ")
-  if query == "" then
-    return
-  end
+  refresh_notebook_map()
+  local fzf_lua = require("fzf-lua")
 
-  note_picker(paginated_source(function(page, cb)
-    api.search(query, page, cb)
-  end, { sort = note_sort }), {
-    prompt = "Joplin Search [" .. query .. "]> ",
-    search_query = query,
+  local initial_query = opts.query or ""
+
+  fzf_lua.fzf_live(function(args)
+    local query = args[1] or ""
+    search_highlight = query
+
+    local all = {}
+    if query == "" then
+      all = fetch_all_sync(function(page) return api.list_notes(page) end)
+    else
+      all = fetch_all_sync(function(page) return api.search(query, page) end)
+    end
+    table.sort(all, note_sort)
+
+    local entries = {}
+    for _, item in ipairs(all) do
+      table.insert(entries, format_entry(item))
+    end
+    return entries
+  end, {
+    prompt = "Search> ",
+    previewer = get_previewer(),
+    exec_empty_query = true,
+    query = initial_query,
+    fzf_opts = FZF_OPTS,
+    keymap = {
+      fzf = {
+        ["ctrl-g"] = 'transform:[ "$FZF_PROMPT" = "Search> " ]'
+          .. ' && echo "enable-search+unbind(change)+clear-query+change-prompt:Filter [$FZF_QUERY]> "'
+          .. ' || echo "disable-search+rebind(change)+clear-query+change-prompt:Search> "',
+      },
+    },
     winopts = { preview = { hidden = "nohidden" } },
+    actions = DEFAULT_NOTE_ACTIONS,
   })
 end
 
