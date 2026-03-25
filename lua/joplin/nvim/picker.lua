@@ -419,6 +419,7 @@ function M.manage_note_tags(note_id)
           end
         end
         vim.notify("[joplin.nvim] Tags updated", vim.log.levels.INFO)
+        vim.schedule(function() M.manage_note_tags(note_id) end)
       end,
       ["alt-n"] = function()
         local title = vim.fn.input("New tag name: ")
@@ -437,6 +438,7 @@ function M.manage_note_tags(note_id)
           else
             vim.notify("[joplin.nvim] Created and applied tag: " .. title, vim.log.levels.INFO)
           end
+          vim.schedule(function() M.manage_note_tags(note_id) end)
         end
       end,
     },
