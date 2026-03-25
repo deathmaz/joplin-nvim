@@ -675,6 +675,7 @@ function M.tags()
         else
           vim.notify("[joplin.nvim] Tag created: " .. title, vim.log.levels.INFO)
         end
+        vim.schedule(function() M.tags() end)
       end,
       ["ctrl-x"] = function(selected)
         local tag_id = selected_id(selected)
@@ -683,6 +684,7 @@ function M.tags()
             return api.delete_tag(tag_id)
           end, "Tag deleted")
         end
+        vim.schedule(function() M.tags() end)
       end,
     },
   })
