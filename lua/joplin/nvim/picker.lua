@@ -398,7 +398,7 @@ function M.manage_note_tags(note_id)
     prompt = "Tags (enter=toggle)> ",
     fzf_opts = vim.tbl_extend("force", FZF_OPTS, { ["--multi"] = "" }),
     actions = {
-      ["default"] = function(selected)
+      ["default"] = { fn = function(selected)
         if not selected then
           return
         end
@@ -420,8 +420,8 @@ function M.manage_note_tags(note_id)
         end
         vim.notify("[joplin.nvim] Tags updated", vim.log.levels.INFO)
         vim.schedule(function() M.manage_note_tags(note_id) end)
-      end,
-      ["alt-n"] = function()
+      end, desc = "Toggle tag" },
+      ["alt-n"] = { fn = function()
         local title = vim.fn.input("New tag name: ")
         if title == "" then
           return
@@ -440,7 +440,7 @@ function M.manage_note_tags(note_id)
           end
           vim.schedule(function() M.manage_note_tags(note_id) end)
         end
-      end,
+      end, desc = "Create and apply tag" },
     },
   })
 end
@@ -463,19 +463,22 @@ end
 local reopen_picker = nil
 
 local DEFAULT_NOTE_ACTIONS = {
-  ["default"] = action_open,
-  ["ctrl-x"] = action_delete,
-  ["ctrl-t"] = action_manage_tags,
-  ["alt-m"] = action_move,
-  ["alt-f"] = function(selected)
-    local note_id = selected_id(selected)
-    if note_id then
-      M.toggle_todo(note_id)
-      vim.schedule(function()
-        if reopen_picker then reopen_picker() end
-      end)
-    end
-  end,
+  ["default"] = { fn = action_open, desc = "Open note" },
+  ["ctrl-x"] = { fn = action_delete, desc = "Delete note" },
+  ["ctrl-t"] = { fn = action_manage_tags, desc = "Manage tags" },
+  ["alt-m"] = { fn = action_move, desc = "Move to notebook" },
+  ["alt-f"] = {
+    fn = function(selected)
+      local note_id = selected_id(selected)
+      if note_id then
+        M.toggle_todo(note_id)
+        vim.schedule(function()
+          if reopen_picker then reopen_picker() end
+        end)
+      end
+    end,
+    desc = "Toggle todo completion",
+  },
 }
 
 --- Open a note picker with standard actions
@@ -510,21 +513,21 @@ function M.pick_notebook(on_select)
     prompt = "Notebook> ",
     fzf_opts = FZF_OPTS,
     actions = {
-      ["default"] = function(selected)
+      ["default"] = { fn = function(selected)
         local folder_id = selected_id(selected)
         if folder_id then
           on_select(folder_id)
         end
-      end,
-      ["ctrl-x"] = function(selected)
+      end, desc = "Select notebook" },
+      ["ctrl-x"] = { fn = function(selected)
         local folder_id = selected_id(selected)
         if folder_id then
           confirm_delete("Delete this notebook and all its notes?", function()
             return api.delete_folder(folder_id)
           end, "Notebook deleted")
         end
-      end,
-      ["alt-n"] = function()
+      end, desc = "Delete notebook" },
+      ["alt-n"] = { fn = function()
         local title = vim.fn.input("New notebook name: ")
         if title == "" then
           return
@@ -538,7 +541,7 @@ function M.pick_notebook(on_select)
           vim.notify("[joplin.nvim] Notebook created: " .. title, vim.log.levels.INFO)
           on_select(folder.id)
         end
-      end,
+      end, desc = "Create notebook" },
     },
   })
 end
@@ -556,13 +559,13 @@ function M.pick_note_for_link(on_select)
     previewer = get_previewer(),
     fzf_opts = FZF_OPTS,
     actions = {
-      ["default"] = function(selected)
+      ["default"] = { fn = function(selected)
         local note_id = selected_id(selected)
         if not note_id then return end
         local err, note = api.get_note_metadata(note_id)
         if err or not note then return end
         on_select(note_id, note.title or "untitled")
-      end,
+      end, desc = "Insert link" },
     },
   })
 end
@@ -573,11 +576,11 @@ function M.browse()
   end, { sort = note_sort }), {
     prompt = "Joplin Notes> ",
     actions = {
-      ["alt-n"] = function()
+      ["alt-n"] = { fn = function()
         M.pick_notebook(function(folder_id)
           M.create_in_folder(folder_id)
         end)
-      end,
+      end, desc = "Create note" },
     },
   })
 end
@@ -636,9 +639,9 @@ function M.notebook()
     end, { sort = note_sort }), {
       prompt = "Notebook Notes> ",
       actions = {
-        ["alt-n"] = function()
+        ["alt-n"] = { fn = function()
           M.create_in_folder(folder_id)
-        end,
+        end, desc = "Create note" },
       },
     })
   end)
@@ -653,7 +656,7 @@ function M.tags()
     prompt = "Tag> ",
     fzf_opts = FZF_OPTS,
     actions = {
-      ["default"] = function(selected)
+      ["default"] = { fn = function(selected)
         local tag_id = selected_id(selected)
         if not tag_id then
           return
@@ -663,8 +666,8 @@ function M.tags()
         end, { sort = note_sort }), {
           prompt = "Tagged Notes> ",
         })
-      end,
-      ["alt-n"] = function()
+      end, desc = "Browse tagged notes" },
+      ["alt-n"] = { fn = function()
         local title = vim.fn.input("New tag name: ")
         if title == "" then
           return
@@ -676,8 +679,8 @@ function M.tags()
           vim.notify("[joplin.nvim] Tag created: " .. title, vim.log.levels.INFO)
         end
         vim.schedule(function() M.tags() end)
-      end,
-      ["ctrl-x"] = function(selected)
+      end, desc = "Create tag" },
+      ["ctrl-x"] = { fn = function(selected)
         local tag_id = selected_id(selected)
         if tag_id then
           confirm_delete("Delete this tag?", function()
@@ -685,7 +688,7 @@ function M.tags()
           end, "Tag deleted")
         end
         vim.schedule(function() M.tags() end)
-      end,
+      end, desc = "Delete tag" },
     },
   })
 end
@@ -696,11 +699,11 @@ function M.todos()
   end, { sort = note_sort }), {
     prompt = "Todos> ",
     actions = {
-      ["alt-n"] = function()
+      ["alt-n"] = { fn = function()
         M.pick_notebook(function(folder_id)
           M.create_in_folder(folder_id, { is_todo = true })
         end)
-      end,
+      end, desc = "Create todo" },
     },
   })
 end
