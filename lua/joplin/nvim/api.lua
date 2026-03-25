@@ -345,6 +345,31 @@ function M.delete_tag(id, callback)
   return M._request("DELETE", "/tags/" .. id, nil, nil, callback)
 end
 
+--- Get resource metadata
+---@param id string
+---@param callback? fun(err: string?, data: table?)
+---@return string? err
+---@return table? data
+function M.get_resource(id, callback)
+  return M._request("GET", "/resources/" .. id, {
+    fields = "id,title,mime,filename,file_extension",
+  }, nil, callback)
+end
+
+--- Download a resource file to a local path
+---@param id string
+---@param dest string
+---@return string? err
+function M.download_resource(id, dest)
+  local url = build_url("/resources/" .. id .. "/file")
+  local args = { "curl", "-s", "-m", "30", "-o", dest, url }
+  local obj = vim.system(args, { text = false }):wait()
+  if obj.code ~= 0 then
+    return "download failed (exit code " .. obj.code .. ")"
+  end
+  return nil
+end
+
 --- Upload a file as a Joplin resource (multipart/form-data)
 ---@param file_path string
 ---@param title? string

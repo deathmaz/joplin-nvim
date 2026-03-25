@@ -135,6 +135,7 @@ require("joplin.nvim").setup({
 - Todos show `[x]`/`[ ]` completion status in all pickers.
 - Picker entries show the notebook name (e.g. `My Notebook > Note Title`).
 - **Note linking**: `:JoplinLink` inserts a `[title](:/id)` reference to another note. Press `gd` on a Joplin link to open the linked note.
+- **Attachments**: Press `gd` on a resource attachment link (`![image](:/id)`) to download and open it with your system's default program (`xdg-open` on Linux, `open` on macOS).
 - A **winbar** shows the notebook name and note type (e.g. `My Notebook  >  Note Title` or `My Notebook  >  ⬜ Todo Title`). Disable with `winbar = false` in setup.
 
 ### Buffer variables for statusline integration

@@ -193,16 +193,63 @@ function M.link()
   end)
 end
 
+--- Open system default program for a file
+---@param filepath string
+local function system_open(filepath)
+  local cmd
+  if vim.fn.has("mac") == 1 then
+    cmd = { "open", filepath }
+  else
+    cmd = { "xdg-open", filepath }
+  end
+  vim.system(cmd, { detach = true })
+end
+
+--- Try to open a Joplin ID as a note; if not found, try as a resource
+---@param id string
+local function open_joplin_id(id)
+  local api = require("joplin.nvim.api")
+
+  -- Try as a note first
+  local err, note = api.get_note_metadata(id)
+  if not err and note and note.id then
+    require("joplin.nvim.buffer").open(id)
+    return
+  end
+
+  -- Try as a resource
+  local res_err, resource = api.get_resource(id)
+  if res_err or not resource then
+    vim.notify("[joplin.nvim] Not a note or resource: " .. id, vim.log.levels.WARN)
+    return
+  end
+
+  local ext = resource.file_extension or ""
+  if ext ~= "" and not ext:match("^%.") then
+    ext = "." .. ext
+  end
+  local tmpfile = vim.fn.tempname() .. ext
+
+  local dl_err = api.download_resource(id, tmpfile)
+  if dl_err then
+    vim.notify("[joplin.nvim] Download failed: " .. dl_err, vim.log.levels.ERROR)
+    return
+  end
+
+  system_open(tmpfile)
+  vim.notify("[joplin.nvim] Opened: " .. (resource.title or resource.filename or id), vim.log.levels.INFO)
+end
+
 function M.follow_link()
   local line = vim.api.nvim_get_current_line()
   local col = vim.api.nvim_win_get_cursor(0)[2] + 1
 
   local start = 1
   while true do
-    local s, e, note_id = line:find("%[.-%]%(:/([%x]+)%)", start)
+    local s, e, id = line:find("%[.-%]%(:/([%x]+)%)", start)
     if not s then break end
     if col >= s and col <= e then
-      require("joplin.nvim.buffer").open(note_id)
+      open_joplin_id(id)
       return
     end
     start = e + 1
