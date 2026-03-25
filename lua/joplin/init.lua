@@ -23,7 +23,20 @@ end
 ---@param opts? table
 function M.setup(opts)
   config.setup(opts)
+end
 
+local pinged = false
+
+local function ensure_connected()
+  if pinged then return end
+  pinged = true
+  if not config.get().token then
+    vim.notify(
+      "[joplin.nvim] No token configured. Set JOPLIN_TOKEN env var or pass token in setup().",
+      vim.log.levels.WARN
+    )
+    return
+  end
   local api = require("joplin.api")
   api.ping(function(err, result)
     if err or not result or not result:match("JoplinClipperServer") then
@@ -36,29 +49,35 @@ function M.setup(opts)
 end
 
 function M.browse()
+  ensure_connected()
   require("joplin.picker").browse()
 end
 
 ---@param opts? { query?: string }
 function M.search(opts)
+  ensure_connected()
   require("joplin.picker").search(opts)
 end
 
 function M.notebook()
+  ensure_connected()
   require("joplin.picker").notebook()
 end
 
 function M.tags()
+  ensure_connected()
   require("joplin.picker").tags()
 end
 
 function M.tag()
+  ensure_connected()
   local note_id = current_note_id()
   if not note_id then return end
   require("joplin.picker").manage_note_tags(note_id)
 end
 
 function M.todos()
+  ensure_connected()
   require("joplin.picker").todos()
 end
 

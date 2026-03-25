@@ -16,19 +16,17 @@ Browse, search, create, edit, and delete Joplin notes and todos without leaving 
 ### [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ```lua
-{
-  "deathmaz/joplin-nvim",
-  dependencies = { "ibhagwan/fzf-lua" },
-  config = function()
-    require("joplin").setup({
-      -- token = "your-api-token",  -- or set JOPLIN_TOKEN env var
-      -- port = 41184,              -- default Joplin API port
-    })
-  end,
-}
+-- Minimal: works with JOPLIN_TOKEN env var
+{ "deathmaz/joplin-nvim", dependencies = { "ibhagwan/fzf-lua" }, opts = {} }
+
+-- With custom options
+{ "deathmaz/joplin-nvim", dependencies = { "ibhagwan/fzf-lua" },
+  opts = { port = 41184, winbar = true } }
 ```
 
 ## Configuration
+
+`setup()` is optional — the plugin works with defaults if `JOPLIN_TOKEN` env var is set. Call `setup()` or pass `opts` to customize:
 
 ```lua
 require("joplin").setup({
