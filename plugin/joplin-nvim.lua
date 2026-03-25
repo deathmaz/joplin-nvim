@@ -39,6 +39,10 @@ vim.api.nvim_create_user_command("JoplinNewTodo", function()
   require("joplin.nvim").new_todo()
 end, { desc = "Create a new Joplin todo" })
 
+vim.api.nvim_create_user_command("JoplinRename", function()
+  require("joplin.nvim").rename()
+end, { desc = "Rename the current Joplin note" })
+
 vim.api.nvim_create_user_command("JoplinMove", function()
   require("joplin.nvim").move()
 end, { desc = "Move the current note to a different notebook" })

@@ -73,6 +73,7 @@ require("joplin.nvim").setup({
 | `:JoplinTag` | Manage tags on the current note (toggle on/off) |
 | `:JoplinToggleTodo` | Toggle todo completion (incomplete/completed) |
 | `:JoplinConvertTodo` | Convert note to todo or todo to note |
+| `:JoplinRename` | Rename the current note/todo |
 | `:JoplinMove` | Move the current note to a different notebook |
 | `:JoplinLink` | Insert a link to another Joplin note at cursor |
 | `:JoplinFollowLink` | Follow the Joplin link under cursor |

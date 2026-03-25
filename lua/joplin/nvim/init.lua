@@ -74,6 +74,27 @@ function M.convert_todo()
   require("joplin.nvim.picker").convert_todo(note_id)
 end
 
+function M.rename()
+  local note_id = current_note_id()
+  if not note_id then return end
+  local api = require("joplin.nvim.api")
+  local err, note = api.get_note_metadata(note_id)
+  if err or not note then
+    vim.notify("[joplin.nvim] Failed to load note: " .. (err or ""), vim.log.levels.ERROR)
+    return
+  end
+  local new_title = vim.fn.input("Rename: ", note.title or "")
+  if new_title == "" or new_title == note.title then
+    return
+  end
+  local update_err = api.update_note(note_id, { title = new_title })
+  if update_err then
+    vim.notify("[joplin.nvim] Rename failed: " .. update_err, vim.log.levels.ERROR)
+  else
+    vim.notify("[joplin.nvim] Renamed to: " .. new_title, vim.log.levels.INFO)
+  end
+end
+
 function M.move()
   local note_id = current_note_id()
   if not note_id then return end
