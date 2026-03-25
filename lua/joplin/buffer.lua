@@ -1,5 +1,5 @@
-local api = require("joplin.nvim.api")
-local config = require("joplin.nvim.config")
+local api = require("joplin.api")
+local config = require("joplin.config")
 
 local M = {}
 
@@ -31,7 +31,7 @@ local function track(bufnr, note_id)
   })
   -- gd: follow Joplin note link under cursor
   vim.keymap.set("n", "gd", function()
-    require("joplin.nvim").follow_link()
+    require("joplin").follow_link()
   end, { buffer = bufnr, desc = "Follow Joplin link" })
 
   -- Winbar autocmd: created once per buffer, reads value from buffer variable

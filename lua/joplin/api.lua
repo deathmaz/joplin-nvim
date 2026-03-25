@@ -1,4 +1,4 @@
-local config = require("joplin.nvim.config")
+local config = require("joplin.config")
 
 local M = {}
 

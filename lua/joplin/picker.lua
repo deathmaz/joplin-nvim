@@ -1,5 +1,5 @@
-local api = require("joplin.nvim.api")
-local buffer = require("joplin.nvim.buffer")
+local api = require("joplin.api")
+local buffer = require("joplin.buffer")
 
 local M = {}
 

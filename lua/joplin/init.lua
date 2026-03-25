@@ -1,4 +1,4 @@
-local config = require("joplin.nvim.config")
+local config = require("joplin.config")
 
 local M = {}
 
@@ -6,7 +6,7 @@ local M = {}
 ---@return string?
 local function current_note_id()
   local bufname = vim.api.nvim_buf_get_name(0)
-  local note_id = require("joplin.nvim.buffer").id_from_bufname(bufname)
+  local note_id = require("joplin.buffer").id_from_bufname(bufname)
   if not note_id then
     vim.notify("[joplin.nvim] Current buffer is not a Joplin note", vim.log.levels.WARN)
   end
@@ -24,7 +24,7 @@ end
 function M.setup(opts)
   config.setup(opts)
 
-  local api = require("joplin.nvim.api")
+  local api = require("joplin.api")
   api.ping(function(err, result)
     if err or not result or not result:match("JoplinClipperServer") then
       vim.notify(
@@ -36,48 +36,48 @@ function M.setup(opts)
 end
 
 function M.browse()
-  require("joplin.nvim.picker").browse()
+  require("joplin.picker").browse()
 end
 
 ---@param opts? { query?: string }
 function M.search(opts)
-  require("joplin.nvim.picker").search(opts)
+  require("joplin.picker").search(opts)
 end
 
 function M.notebook()
-  require("joplin.nvim.picker").notebook()
+  require("joplin.picker").notebook()
 end
 
 function M.tags()
-  require("joplin.nvim.picker").tags()
+  require("joplin.picker").tags()
 end
 
 function M.tag()
   local note_id = current_note_id()
   if not note_id then return end
-  require("joplin.nvim.picker").manage_note_tags(note_id)
+  require("joplin.picker").manage_note_tags(note_id)
 end
 
 function M.todos()
-  require("joplin.nvim.picker").todos()
+  require("joplin.picker").todos()
 end
 
 function M.toggle_todo()
   local note_id = current_note_id()
   if not note_id then return end
-  require("joplin.nvim.picker").toggle_todo(note_id)
+  require("joplin.picker").toggle_todo(note_id)
 end
 
 function M.convert_todo()
   local note_id = current_note_id()
   if not note_id then return end
-  require("joplin.nvim.picker").convert_todo(note_id)
+  require("joplin.picker").convert_todo(note_id)
 end
 
 function M.rename()
   local note_id = current_note_id()
   if not note_id then return end
-  local api = require("joplin.nvim.api")
+  local api = require("joplin.api")
   local err, note = api.get_note_metadata(note_id)
   if err or not note then
     vim.notify("[joplin.nvim] Failed to load note: " .. (err or ""), vim.log.levels.ERROR)
@@ -98,18 +98,18 @@ end
 function M.move()
   local note_id = current_note_id()
   if not note_id then return end
-  require("joplin.nvim.picker").move_note(note_id)
+  require("joplin.picker").move_note(note_id)
 end
 
 function M.new_note()
-  require("joplin.nvim.picker").pick_notebook(function(folder_id)
-    require("joplin.nvim.picker").create_in_folder(folder_id)
+  require("joplin.picker").pick_notebook(function(folder_id)
+    require("joplin.picker").create_in_folder(folder_id)
   end)
 end
 
 function M.new_todo()
-  require("joplin.nvim.picker").pick_notebook(function(folder_id)
-    require("joplin.nvim.picker").create_in_folder(folder_id, { is_todo = true })
+  require("joplin.picker").pick_notebook(function(folder_id)
+    require("joplin.picker").create_in_folder(folder_id, { is_todo = true })
   end)
 end
 
@@ -158,7 +158,7 @@ function M.paste_image()
     title = "pasted-image-" .. os.date("%Y%m%d-%H%M%S")
   end
 
-  local api = require("joplin.nvim.api")
+  local api = require("joplin.api")
   local err, resource = api.upload_resource(tmpfile, title)
   os.remove(tmpfile)
 
@@ -181,7 +181,7 @@ end
 function M.link()
   if not current_note_id() then return end
 
-  local picker = require("joplin.nvim.picker")
+  local picker = require("joplin.picker")
   picker.pick_note_for_link(function(note_id, note_title)
     local safe_title = sanitize_link_text(note_title)
     local link = string.format("[%s](:/%s)", safe_title, note_id)
@@ -208,12 +208,12 @@ end
 --- Try to open a Joplin ID as a note; if not found, try as a resource
 ---@param id string
 local function open_joplin_id(id)
-  local api = require("joplin.nvim.api")
+  local api = require("joplin.api")
 
   -- Try as a note first
   local err, note = api.get_note_metadata(id)
   if not err and note and note.id then
-    require("joplin.nvim.buffer").open(id)
+    require("joplin.buffer").open(id)
     return
   end
 
@@ -261,7 +261,7 @@ end
 function M.delete()
   local note_id = current_note_id()
   if not note_id then return end
-  if require("joplin.nvim.picker").confirm_delete_note(note_id) then
+  if require("joplin.picker").confirm_delete_note(note_id) then
     vim.api.nvim_buf_delete(vim.api.nvim_get_current_buf(), { force = true })
   end
 end

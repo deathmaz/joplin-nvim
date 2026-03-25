@@ -20,7 +20,7 @@ Browse, search, create, edit, and delete Joplin notes and todos without leaving 
   "deathmaz/joplin-nvim",
   dependencies = { "ibhagwan/fzf-lua" },
   config = function()
-    require("joplin.nvim").setup({
+    require("joplin").setup({
       -- token = "your-api-token",  -- or set JOPLIN_TOKEN env var
       -- port = 41184,              -- default Joplin API port
     })
@@ -31,7 +31,7 @@ Browse, search, create, edit, and delete Joplin notes and todos without leaving 
 ## Configuration
 
 ```lua
-require("joplin.nvim").setup({
+require("joplin").setup({
   token = nil,      -- API token (defaults to $JOPLIN_TOKEN env var)
   port = 41184,     -- Joplin Web Clipper port
   page_size = 100,  -- notes per API request (max 100)
