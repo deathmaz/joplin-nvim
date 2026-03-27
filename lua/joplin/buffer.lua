@@ -265,7 +265,6 @@ function M.open(note_id)
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
 
   vim.bo[bufnr].buftype = "acwrite"
-  vim.bo[bufnr].filetype = "markdown"
   vim.bo[bufnr].modified = false
 
   vim.api.nvim_create_autocmd("BufWriteCmd", {
@@ -277,6 +276,7 @@ function M.open(note_id)
 
   track(bufnr, note_id)
   vim.api.nvim_set_current_buf(bufnr)
+  vim.bo[bufnr].filetype = "markdown"
   apply_note_info(bufnr, note)
 end
 
