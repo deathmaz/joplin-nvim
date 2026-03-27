@@ -132,6 +132,18 @@ function M.new_todo()
   end)
 end
 
+function M.new_notebook()
+  local title = vim.fn.input("New notebook name: ")
+  if title == "" then return end
+  local api = require("joplin.api")
+  local err = api.create_folder({ title = title })
+  if err then
+    vim.notify("[joplin.nvim] Create notebook failed: " .. err, vim.log.levels.ERROR)
+  else
+    vim.notify("[joplin.nvim] Notebook created: " .. title, vim.log.levels.INFO)
+  end
+end
+
 --- Detect the clipboard image command for the current platform
 ---@return string[]?
 local function clipboard_image_cmd()

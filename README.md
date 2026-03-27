@@ -62,6 +62,7 @@ require("joplin").setup({
 |---|---|
 | `:JoplinNewNote` | Create a new note (picks notebook, then prompts for title) |
 | `:JoplinNewTodo` | Create a new todo (picks notebook, then prompts for title) |
+| `:JoplinNewNotebook` | Create a new notebook |
 
 ### Managing (current buffer)
 
