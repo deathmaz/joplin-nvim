@@ -7,6 +7,8 @@ local M = {}
 local note_bufs = {}
 --- Maps bufnr -> note_id
 local buf_notes = {}
+--- Tracks last known updated_time per note_id
+local last_updated = {}
 --- Cache: parent_id -> notebook title
 local notebook_cache = {}
 
@@ -16,6 +18,9 @@ local notebook_cache = {}
 function M.id_from_bufname(bufname)
   return bufname:match("^joplin://([^/]+)")
 end
+
+-- Forward declaration (defined later, after helper functions)
+local apply_note_info
 
 ---@param bufnr number
 ---@param note_id string
@@ -27,8 +32,52 @@ local function track(bufnr, note_id)
     callback = function()
       note_bufs[note_id] = nil
       buf_notes[bufnr] = nil
+      last_updated[note_id] = nil
     end,
   })
+
+  -- Check for external changes when returning to Neovim or entering buffer.
+  -- Debounced to avoid redundant HTTP calls during rapid buffer switching.
+  local last_checked = 0
+  vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained" }, {
+    buffer = bufnr,
+    callback = function()
+      local now = os.time()
+      if now - last_checked < 5 then
+        return
+      end
+      last_checked = now
+
+      local nid = buf_notes[bufnr]
+      if not nid or not last_updated[nid] then
+        return
+      end
+
+      api.get_note_metadata(nid, function(err, meta)
+        if err or not meta or meta.updated_time == last_updated[nid] then
+          return
+        end
+        if vim.bo[bufnr].modified then
+          vim.notify(
+            "[joplin.nvim] Note changed externally. Save will overwrite. Use :e to reload.",
+            vim.log.levels.WARN
+          )
+          return
+        end
+        api.get_note(nid, function(note_err, note)
+          if note_err or not note then
+            return
+          end
+          local lines = vim.split(note.body or "", "\n")
+          vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+          vim.bo[bufnr].modified = false
+          last_updated[nid] = note.updated_time
+          apply_note_info(bufnr, note)
+        end)
+      end)
+    end,
+  })
+
   -- gd: follow Joplin note link under cursor
   vim.keymap.set("n", "gd", function()
     require("joplin").follow_link()
@@ -114,7 +163,7 @@ end
 
 ---@param bufnr number
 ---@param note table
-local function apply_note_info(bufnr, note)
+apply_note_info = function(bufnr, note)
   local notebook_name = resolve_notebook(note.parent_id)
   set_metadata(bufnr, note, notebook_name)
   apply_winbar(bufnr, build_winbar(note, notebook_name))
@@ -199,6 +248,7 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
     vim.bo[ev.buf].buftype = "acwrite"
     vim.bo[ev.buf].filetype = "markdown"
     vim.bo[ev.buf].modified = false
+    last_updated[note_id] = note.updated_time
     apply_note_info(ev.buf, note)
   end,
 })
@@ -230,11 +280,14 @@ function M._save(bufnr)
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local body = table.concat(lines, "\n")
 
-  local err = api.update_note(note_id, { body = body })
+  local err, result = api.update_note(note_id, { body = body })
   if err then
     vim.notify("[joplin.nvim] Save failed: " .. err, vim.log.levels.ERROR)
   else
     vim.bo[bufnr].modified = false
+    if result and result.updated_time then
+      last_updated[note_id] = result.updated_time
+    end
     vim.notify("[joplin.nvim] Saved to Joplin", vim.log.levels.INFO)
   end
 end
@@ -274,6 +327,7 @@ function M.open(note_id)
     end,
   })
 
+  last_updated[note_id] = note.updated_time
   track(bufnr, note_id)
   vim.api.nvim_set_current_buf(bufnr)
   vim.bo[bufnr].filetype = "markdown"
