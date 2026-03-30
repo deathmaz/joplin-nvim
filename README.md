@@ -89,6 +89,7 @@ require("joplin").setup({
 | `ctrl-x` | Delete the selected note |
 | `ctrl-t` | Manage tags on the selected note |
 | `alt-m` | Move the selected note to a different notebook |
+| `alt-t` | Create a new todo (with notebook selection) |
 | `alt-f` | Toggle todo completion |
 
 ### Todos picker (`:JoplinTodos`)
@@ -100,6 +101,7 @@ require("joplin").setup({
 | `ctrl-x` | Delete the selected todo |
 | `ctrl-t` | Manage tags on the selected todo |
 | `alt-m` | Move the selected todo to a different notebook |
+| `alt-t` | Create a new todo (with notebook selection) |
 | `alt-f` | Toggle todo completion |
 
 ### Notebook picker (`:JoplinNotebook`, `:JoplinNewNote`, `:JoplinNewTodo`)

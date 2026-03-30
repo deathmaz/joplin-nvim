@@ -467,6 +467,11 @@ local DEFAULT_NOTE_ACTIONS = {
   ["ctrl-x"] = { fn = action_delete, desc = "Delete note" },
   ["ctrl-t"] = { fn = action_manage_tags, desc = "Manage tags" },
   ["alt-m"] = { fn = action_move, desc = "Move to notebook" },
+  ["alt-t"] = { fn = function()
+    M.pick_notebook(function(folder_id)
+      M.create_in_folder(folder_id, { is_todo = true })
+    end)
+  end, desc = "Create todo" },
   ["alt-f"] = {
     fn = function(selected)
       local note_id = selected_id(selected)
